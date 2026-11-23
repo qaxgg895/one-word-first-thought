@@ -6,7 +6,7 @@
 // brain skips a beat. Vivid, a little ridiculous, and impossible to
 // mistake for safe filler.
 
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const WORD = "flabbergast";
 
@@ -26,5 +26,17 @@ if (/\s/.test(WORD) || /[^A-Za-z]/.test(WORD)) {
 
 const OUTPUT_PATH = "/output/entry.txt";
 
-mkdirSync("/output", { recursive: true });
-writeFileSync(OUTPUT_PATH, WORD + "\n", "utf8");
+try {
+  mkdirSync("/output", { recursive: true });
+  writeFileSync(OUTPUT_PATH, WORD + "\n", "utf8");
+} catch (error) {
+  throw new Error(`failed to write the word to ${OUTPUT_PATH}: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+// Verify what was actually written: read the file back and refuse to
+// finish silently if the disk content is not exactly the word plus a
+// trailing newline, so a partial or corrupted write can never pass.
+const written = readFileSync(OUTPUT_PATH, "utf8");
+if (written !== WORD + "\n") {
+  throw new Error(`verification failed: ${OUTPUT_PATH} does not contain exactly the word plus a newline`);
+}
